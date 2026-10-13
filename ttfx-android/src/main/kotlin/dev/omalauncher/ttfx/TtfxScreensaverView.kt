@@ -7,14 +7,16 @@ import android.graphics.Typeface
 import android.util.Log
 import android.view.Choreographer
 import android.view.View
+import kotlin.math.roundToInt
 
 class TtfxScreensaverView(
     context: Context,
     private val text: String,
     private val frameRate: Int = 60,
 ) : View(context), Choreographer.FrameCallback {
-    private val textCols = text.lines().maxOfOrNull(String::length) ?: 0
-    private val minCols = textCols + 4
+    private val lines = text.lines().dropLastWhile { it.isBlank() }
+    private val textCols = (lines.maxOfOrNull(String::length) ?: 0).coerceAtLeast(1)
+    private val textRows = lines.size.coerceAtLeast(1)
     private val painter = TtfxPainter(Typeface.MONOSPACE)
     private val pacer = TtfxFramePacer(frameRate)
     private var animation: TtfxAnimation? = null
@@ -116,9 +118,13 @@ class TtfxScreensaverView(
     }
 
     private fun startEffect() {
-        val (fitCols, rows) = painter.fit(width, height, minCols)
+        val pad = (EDGE_PADDING_DP * resources.displayMetrics.density).roundToInt()
+        val fw = (width - 2 * pad).coerceAtLeast(1)
+        val fh = (height - 2 * pad).coerceAtLeast(1)
+        val (fitCols, fitRows) = painter.fit(fw, fh, maxOf(textCols, MIN_FIT_COLS), textRows)
         // ttfx centers text one column right in a wider canvas, so keep the canvas the logo's width.
         val cols = textCols.coerceAtMost(fitCols)
+        val rows = fitRows
         val buildStartedNanos = System.nanoTime()
         val next = TtfxAnimation.random(text, cols, rows, frameRate = frameRate)
         val buildNanos = System.nanoTime() - buildStartedNanos
@@ -143,5 +149,7 @@ class TtfxScreensaverView(
     private companion object {
         const val TAG = "TtfxScreensaver"
         const val EFFECT_HOLD_NANOS = 2_000_000_000L
+        const val EDGE_PADDING_DP = 24f
+        const val MIN_FIT_COLS = 40
     }
 }
