@@ -76,6 +76,15 @@
         </activity>
 
         <activity
+            android:name=".screensaver.ScreensaverActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.screensaver"
+            android:theme="@style/Theme.Omalauncher.Screensaver" />
+
+        <activity
             android:name=".LinuxWindowActivity"
             android:label="Linux"
             android:theme="@style/Theme.Omalauncher.Window"
@@ -216,6 +225,17 @@
             <meta-data
                 android:name="android.service.dream"
                 android:resource="@xml/dream" />
+        </service>
+
+        <service
+            android:name=".screensaver.ScreensaverTile"
+            android:exported="true"
+            android:icon="@drawable/ic_screensaver_tile"
+            android:label="Screensaver"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
         </service>
 
         <!-- Notification access lets widgets show and control what's playing (android.media) and list notifications (android.notifications). -->
