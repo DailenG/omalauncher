@@ -15,9 +15,9 @@ class TtfxPainter(typeface: Typeface) {
     /** Picks the text size so [minCols] cells fill [widthPx]; returns the grid (cols, rows) for widthPx x heightPx. */
     fun fit(widthPx: Int, heightPx: Int, minCols: Int): Pair<Int, Int> {
         require(widthPx > 0 && heightPx > 0 && minCols > 0)
-        paint.textSize = 1f
-        val unitWidth = paint.measureText("M").coerceAtLeast(0.01f)
-        paint.textSize = widthPx / (minCols * unitWidth)
+        paint.textSize = 100f
+        val widthAt100 = paint.measureText("M").coerceAtLeast(0.01f)
+        paint.textSize = 100f * widthPx / (minCols * widthAt100)
         val metrics = paint.fontMetrics
         val cellWidth = paint.measureText("M")
         val cellHeight = (metrics.descent - metrics.ascent).coerceAtLeast(0.01f)
