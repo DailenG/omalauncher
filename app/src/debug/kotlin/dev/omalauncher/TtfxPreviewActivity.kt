@@ -27,7 +27,8 @@ class TtfxPreviewActivity : Activity() {
 
 private class TtfxPreviewView(context: android.content.Context) : View(context), Choreographer.FrameCallback {
     private val logo = TtfxAnimation.omarchyLogo(context)
-    private val minCols = (logo.lines().maxOfOrNull(String::length) ?: 0) + 4
+    private val logoCols = logo.lines().maxOfOrNull(String::length) ?: 0
+    private val minCols = logoCols + 4
     private val painter = TtfxPainter(Typeface.MONOSPACE)
     private val pacer = TtfxFramePacer(60)
     private var animation: TtfxAnimation? = null
@@ -95,7 +96,9 @@ private class TtfxPreviewView(context: android.content.Context) : View(context),
     }
 
     private fun startEffect() {
-        val (cols, rows) = painter.fit(width, height, minCols)
+        val (fitCols, rows) = painter.fit(width, height, minCols)
+        // ttfx centers text one column right in a wider canvas, so keep the canvas the logo's width.
+        val cols = logoCols.coerceAtMost(fitCols)
         val buildStartedNanos = System.nanoTime()
         val next = TtfxAnimation.random(logo, cols, rows, frameRate = 60)
         val buildNanos = System.nanoTime() - buildStartedNanos
@@ -103,7 +106,11 @@ private class TtfxPreviewView(context: android.content.Context) : View(context),
         animation = next
         finishedAtNanos = 0L
         resetFrameMetrics()
-        Log.i("TtfxPreview", "build=${buildNanos / 1_000_000.0}ms effect=${next.effect} cols=$cols rows=$rows")
+        Log.i(
+            "TtfxPreview",
+            "build=${buildNanos / 1_000_000.0}ms effect=${next.effect} " +
+                "fit=${fitCols}x${rows} anim=${cols}x${rows}",
+        )
     }
 
     private fun resetFrameMetrics(startedAtNanos: Long = System.nanoTime()) {
