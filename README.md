@@ -52,6 +52,7 @@ and Super+W (close) in Linux windows.
 
 ```sh
 ./scripts/fetch-proot.sh          # Termux's proot -> app/src/main/jniLibs (needs bsdtar)
+./scripts/build-ttfx.sh           # native ttfx renderer -> ttfx-android/src/main/jniLibs
 ./gradlew :app:installDebug
 # optional: skip the 830 MB download on the device
 adb push ArchLinuxARM-aarch64-latest.tar.gz /sdcard/Android/data/dev.omalauncher/files/

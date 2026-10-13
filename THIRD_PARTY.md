@@ -35,6 +35,20 @@ agent in the launcher, which is not affiliated with or endorsed by any of them.
 come from [Omarchy](https://github.com/omacom/omarchy), MIT, Copyright (c) David Heinemeier Hansson.
 Omalauncher is not affiliated with Omarchy.
 
+## Omarchy screensaver
+
+The native text effects renderer in `ttfx-android/` uses
+[ttfx](https://github.com/omacom/ttfx) (MIT, Copyright (c) omacom), pinned
+to `921bd551c308c235e01c5867f0199efe0691c271`. Its effects are based on
+[TerminalTextEffects](https://github.com/ChrisBuilds/TerminalTextEffects)
+(MIT, Copyright (c) ChrisBuilds), as credited in ttfx's NOTICE.
+`ttfx-android/src/main/assets/ttfx/omarchy-logo.txt` is from
+[Omarchy](https://github.com/omacom/omarchy), MIT, Copyright (c) David Heinemeier Hansson.
+The Android build also links the crates in
+`ttfx-android/rust/Cargo.lock` (including clap, jni, terminal_size, rustix, libc,
+and their support crates), which are distributed under their declared MIT and
+Apache-2.0 licenses.
+
 ## Bundled at build time
 
 `scripts/fetch-proot.sh` downloads pinned versions of Termux's builds of PRoot (GPL-2.0),

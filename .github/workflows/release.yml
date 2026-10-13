@@ -43,6 +43,9 @@ jobs:
           [ -d "$ANDROID_HOME/ndk/$ndk" ] || yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk" >/dev/null
           scripts/fetch-proot.sh
 
+      - name: Build ttfx
+        run: rustup target add aarch64-linux-android && scripts/build-ttfx.sh
+
       # The upload key, so the APK has the fingerprint assetlinks.json already lists.
       - name: Write the signing key
         env:
