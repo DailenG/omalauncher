@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Builds the ttfx renderer (ttfx-android/rust) for arm64 with the NDK fetch-proot.sh pins, placing
+# libttfx_android.so in ttfx-android/src/main/jniLibs/arm64-v8a. Needs rustup's aarch64-linux-android target.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,7 +21,7 @@ if [[ -z "$NDK_VERSION" ]]; then
 fi
 NDK="$SDK/ndk/$NDK_VERSION"
 
-if ! rustup target list --installed | rg -qx 'aarch64-linux-android'; then
+if ! rustup target list --installed | grep -qx 'aarch64-linux-android'; then
   echo "Rust target aarch64-linux-android is not installed; run: rustup target add aarch64-linux-android" >&2
   exit 1
 fi
