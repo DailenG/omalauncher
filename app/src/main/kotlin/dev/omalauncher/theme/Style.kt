@@ -165,7 +165,7 @@ class Style(
                 "screensaver.idle",
                 60.0,
                 0.0..3600.0,
-                "Seconds on home without a touch before the Omarchy screensaver covers it; 0 never. Android's screen timeout still turns the screen off first if it's shorter.",
+                "Seconds on home without a touch before the Omarchy screensaver covers it; 0 never. While plugged in it keeps the screen on; on battery, if Android's screen timeout is shorter, it starts 10 s before the screen turns off.",
             )
     }
 

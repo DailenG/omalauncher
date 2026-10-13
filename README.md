@@ -21,7 +21,8 @@ window opens as its own Android task, with its own card in Recents.
   [omarchy.org/themes](https://omarchy.org/themes/), or your own in
   `~/.config/omarchy/themes`
 - **Screensaver**: Omarchy's ttfx animation as Android's screen saver, over
-  home after a minute idle, or from a Quick Settings tile
+  home after a minute idle, or from a Quick Settings tile; keeps the screen on
+  while charging
 - **Widgets** written in OWL, a small declarative language you can edit on the
   phone, plus a [widget store](https://github.com/SimonSchubert/omarchy-widgets)
 - **Linux, optional**: pacman and the AUR, Linux apps in their own windows,

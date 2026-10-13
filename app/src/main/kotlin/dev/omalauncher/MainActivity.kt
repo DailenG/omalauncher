@@ -2,13 +2,18 @@ package dev.omalauncher
 
 import android.app.ActivityManager
 import android.app.role.RoleManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -25,6 +30,9 @@ import dev.omalauncher.ui.applySystemBars
 import dev.omalauncher.ui.LauncherRoot
 import dev.omalauncher.ui.LauncherState
 import dev.omalauncher.ui.PromptRequest
+import dev.omalauncher.screensaver.ScreensaverPolicy
+import dev.omalauncher.screensaver.pluggedIn
+import dev.omalauncher.screensaver.screenOffMillis
 import dev.omalauncher.theme.Style
 import dev.omalauncher.widgets.market.Share
 
@@ -34,6 +42,14 @@ class MainActivity : ComponentActivity() {
     private val state = LauncherState()
     private var idle: Job? = null
     private var swallowing = false
+    private var powerReceiverRegistered = false
+    private val powerReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                updateKeepScreenOn()
+                if (!state.screensaver) armIdle()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +63,7 @@ class MainActivity : ComponentActivity() {
         }
         lifecycleScope.launch {
             snapshotFlow { state.screensaver }.collect { showing ->
+                updateKeepScreenOn()
                 val controller = WindowCompat.getInsetsController(window, window.decorView)
                 if (showing) {
                     controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -118,6 +135,18 @@ class MainActivity : ComponentActivity() {
         runtime.androidApps.checkShortcutAccess()
         // The user may have set or replaced the wallpaper while we were in the background.
         lifecycleScope.launch { runtime.themes.refreshLiveWallpaper() }
+        if (!powerReceiverRegistered) {
+            ContextCompat.registerReceiver(
+                this,
+                powerReceiver,
+                IntentFilter(Intent.ACTION_POWER_CONNECTED).apply {
+                    addAction(Intent.ACTION_POWER_DISCONNECTED)
+                },
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            powerReceiverRegistered = true
+        }
+        updateKeepScreenOn()
         armIdle()
     }
 
@@ -127,17 +156,30 @@ class MainActivity : ComponentActivity() {
         idle = null
         swallowing = false
         state.screensaver = false
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (powerReceiverRegistered) {
+            unregisterReceiver(powerReceiver)
+            powerReceiverRegistered = false
+        }
     }
 
     private fun armIdle() {
         idle?.cancel()
         val seconds = runtime.style.style[Style.SCREENSAVER_IDLE]
-        if (seconds <= 0.0) return
+        val delayMillis = ScreensaverPolicy.delayMillis(seconds, screenOffMillis(), pluggedIn()) ?: return
         idle =
             lifecycleScope.launch {
-                delay((seconds * 1000).toLong())
+                delay(delayMillis)
                 if (runtime.launcherReady) state.screensaver = true
             }
+    }
+
+    private fun updateKeepScreenOn() {
+        if (state.screensaver && pluggedIn()) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     /** Drops Recents cards whose Linux window no longer exists (app exited or process restarted). */
