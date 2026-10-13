@@ -21,6 +21,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Test ttfx
+        run: cargo test --locked --manifest-path ttfx-android/rust/Cargo.toml
+
       # Unit tests only: a full build needs proot, built by scripts/fetch-proot.sh.
       - name: Test
         run: ./gradlew :owl:test :app:testDebugUnitTest :owl:owlJar

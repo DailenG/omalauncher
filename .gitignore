@@ -8,6 +8,8 @@ local.properties
 .kotlin/
 # fetched by scripts/fetch-proot.sh
 app/src/main/jniLibs/
+ttfx-android/src/main/jniLibs/
+ttfx-android/rust/target/
 # fastlane
 fastlane/play-store-key.json
 fastlane/report.xml
