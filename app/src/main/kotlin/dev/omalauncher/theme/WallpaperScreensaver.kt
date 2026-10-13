@@ -1,6 +1,5 @@
 package dev.omalauncher.theme
 
-import android.app.WallpaperManager
 import kotlin.math.floor
 import kotlin.math.min
 
@@ -35,14 +34,12 @@ internal object WallpaperScreensaver {
         return Band(textRows + 2 * spare, centerY)
     }
 
-    enum class Trigger { CREATED, SCREEN_ON, USER_PRESENT }
+    enum class Trigger { CREATED, SCREEN_ON }
 
-    fun plays(trigger: Trigger, flags: Int?, powerSave: Boolean): Boolean {
+    fun plays(trigger: Trigger, powerSave: Boolean): Boolean {
         if (powerSave) return false
         return when (trigger) {
-            Trigger.CREATED -> true
-            Trigger.SCREEN_ON -> flags == null || flags and WallpaperManager.FLAG_LOCK != 0
-            Trigger.USER_PRESENT -> flags != null && flags and WallpaperManager.FLAG_SYSTEM != 0 && flags and WallpaperManager.FLAG_LOCK == 0
+            Trigger.CREATED, Trigger.SCREEN_ON -> true
         }
     }
 

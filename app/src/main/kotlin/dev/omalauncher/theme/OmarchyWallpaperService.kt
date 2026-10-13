@@ -1,7 +1,6 @@
 package dev.omalauncher.theme
 
 import android.app.WallpaperColors
-import android.app.WallpaperManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -117,13 +116,8 @@ class OmarchyWallpaperService : WallpaperService() {
         private val triggerReceiver =
             object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) {
-                    val trigger =
-                        when (intent.action) {
-                            Intent.ACTION_SCREEN_ON -> WallpaperScreensaver.Trigger.SCREEN_ON
-                            Intent.ACTION_USER_PRESENT -> WallpaperScreensaver.Trigger.USER_PRESENT
-                            else -> return
-                        }
-                    trigger(trigger, intent.action.orEmpty())
+                    if (intent.action != Intent.ACTION_SCREEN_ON) return
+                    trigger(WallpaperScreensaver.Trigger.SCREEN_ON, intent.action.orEmpty())
                 }
             }
 
@@ -151,10 +145,7 @@ class OmarchyWallpaperService : WallpaperService() {
             ContextCompat.registerReceiver(
                 this@OmarchyWallpaperService,
                 triggerReceiver,
-                IntentFilter().apply {
-                    addAction(Intent.ACTION_SCREEN_ON)
-                    addAction(Intent.ACTION_USER_PRESENT)
-                },
+                IntentFilter(Intent.ACTION_SCREEN_ON),
                 ContextCompat.RECEIVER_NOT_EXPORTED,
             )
             style = StyleStore.read(this@OmarchyWallpaperService)
@@ -330,10 +321,9 @@ class OmarchyWallpaperService : WallpaperService() {
                 main.post {
                     style = loadedStyle
                     screensaverText = loadedText
-                    val flags = if (Build.VERSION.SDK_INT >= 34) getWallpaperFlags() else null
                     val powerSave = getSystemService(PowerManager::class.java)?.isPowerSaveMode == true
-                    val plays = WallpaperScreensaver.plays(trigger, flags, powerSave)
-                    Log.d(TAG, "trigger action=$action flags=$flags powerSave=$powerSave plays=$plays isVisible=$isVisible")
+                    val plays = WallpaperScreensaver.plays(trigger, powerSave)
+                    Log.d(TAG, "trigger action=$action powerSave=$powerSave plays=$plays isVisible=$isVisible")
                     if (!screenSaverEnabled()) return@post
                     if (!plays) {
                         pendingTrigger = false

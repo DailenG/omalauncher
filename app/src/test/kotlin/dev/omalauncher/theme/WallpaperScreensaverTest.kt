@@ -1,6 +1,5 @@
 package dev.omalauncher.theme
 
-import android.app.WallpaperManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -48,14 +47,10 @@ class WallpaperScreensaverTest {
     }
 
     @Test fun triggerRulesAndPowerSave() {
-        assertTrue(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.CREATED, null, false))
-        assertTrue(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.SCREEN_ON, null, false))
-        assertTrue(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.SCREEN_ON, WallpaperManager.FLAG_LOCK, false))
-        assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.SCREEN_ON, WallpaperManager.FLAG_SYSTEM, false))
-        assertTrue(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.USER_PRESENT, WallpaperManager.FLAG_SYSTEM, false))
-        assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.USER_PRESENT, WallpaperManager.FLAG_LOCK, false))
-        assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.USER_PRESENT, null, false))
-        assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.CREATED, null, true))
+        assertTrue(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.CREATED, false))
+        assertTrue(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.SCREEN_ON, false))
+        assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.CREATED, true))
+        assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.SCREEN_ON, true))
     }
 
     @Test fun reloadsWithoutChangesAsRedraw() {
