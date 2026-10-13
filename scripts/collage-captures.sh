@@ -84,9 +84,9 @@ for scene in "${SCENES[@]}"; do
   done
   # Theme, wallpaper and the widgets' first data.
   sleep "${WAIT:-12}"
-  # Home again in case another app came up meanwhile, and only keep a shot with the launcher in front throughout.
+  # The launcher again (not Home, which may be the release build) in case another app came up meanwhile, and only keep a shot with the launcher in front throughout.
   for try in $(seq 5); do
-    adb shell input keyevent KEYCODE_HOME
+    adb shell am start -n $PKG/dev.omalauncher.MainActivity >/dev/null
     sleep 2
     front || continue
     adb exec-out screencap -p >"$OUT/$theme.png"
