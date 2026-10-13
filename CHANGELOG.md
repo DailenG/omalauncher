@@ -6,6 +6,9 @@ Dates are when the build was uploaded to Play.
 
 ## Unreleased
 
+- Omarchy's screensaver can be Android's screen saver, cover home after a
+  minute of idle (`screensaver.idle` in `style.toml`), or start from a Quick
+  Settings tile.
 - Oh My Pi (omp), the Pi fork with subagents, LSP and a browser, is one of the
   coding agents to install. Reviewing a shared widget runs it with only its read tools.
 - Websites installed from a browser (Install app, or Add to home screen) show up
