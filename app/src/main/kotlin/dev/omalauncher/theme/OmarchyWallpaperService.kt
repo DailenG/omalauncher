@@ -77,6 +77,7 @@ class OmarchyWallpaperService : WallpaperService() {
         private var framePosted = false
         private var pendingTrigger = false
         private var layout: ScreensaverLayout? = null
+        private var lastSurface: WallpaperScreensaver.Surface? = null
         private var styleObserver: FileObserver? = null
         private var screensaverTextObserver: FileObserver? = null
         private val reloadRunnable = Runnable { reload() }
@@ -194,12 +195,21 @@ class OmarchyWallpaperService : WallpaperService() {
             height: Int,
         ) {
             super.onSurfaceChanged(holder, format, width, height)
-            Log.d(TAG, "onSurfaceChanged ${width}x$height")
-            if (screenSaverEnabled()) {
-                stopAnimation("surface changed")
-                layout = null
+            val resized = WallpaperScreensaver.surfaceResized(lastSurface, width, height, format)
+            lastSurface = WallpaperScreensaver.Surface(width, height, format)
+            if (!resized) {
+                Log.d(TAG, "onSurfaceChanged unchanged")
+                if (animation == null) draw()
+                return
             }
-            draw()
+            Log.d(TAG, "onSurfaceChanged ${width}x$height")
+            layout = null
+            if (animation != null) {
+                stopAnimation("resized")
+                startEffect()
+            } else {
+                draw()
+            }
         }
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
@@ -215,6 +225,7 @@ class OmarchyWallpaperService : WallpaperService() {
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             Log.d(TAG, "onSurfaceDestroyed")
+            lastSurface = null
             super.onSurfaceDestroyed(holder)
         }
 

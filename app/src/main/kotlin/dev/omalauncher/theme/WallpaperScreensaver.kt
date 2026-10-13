@@ -10,6 +10,14 @@ internal object WallpaperScreensaver {
     val EXCLUDED_EFFECTS = setOf("matrix", "thunderstorm")
 
     data class Band(val rows: Int, val centerY: Float)
+    data class Surface(val width: Int, val height: Int, val format: Int)
+
+    fun surfaceResized(
+        old: Surface?,
+        width: Int,
+        height: Int,
+        format: Int,
+    ): Boolean = old != Surface(width, height, format)
 
     fun band(heightPx: Int, marginPx: Int, cellHeight: Float, textRows: Int, position: Double): Band {
         val logoHeight = textRows * cellHeight

@@ -7,6 +7,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WallpaperScreensaverTest {
+    @Test fun firstSurfaceCountsAsResized() {
+        assertTrue(WallpaperScreensaver.surfaceResized(null, 1080, 2404, 1))
+    }
+
+    @Test fun sameSurfaceDoesNotCountAsResized() {
+        val old = WallpaperScreensaver.Surface(1080, 2404, 1)
+        assertFalse(WallpaperScreensaver.surfaceResized(old, 1080, 2404, 1))
+    }
+
+    @Test fun differentSurfaceWidthCountsAsResized() {
+        val old = WallpaperScreensaver.Surface(1080, 2404, 1)
+        assertTrue(WallpaperScreensaver.surfaceResized(old, 720, 2404, 1))
+    }
+
     @Test fun bandMovesAcrossTheInnerRoom() {
         val top = WallpaperScreensaver.band(1000, 100, 20f, 5, 0.0)
         val middle = WallpaperScreensaver.band(1000, 100, 20f, 5, 0.5)
