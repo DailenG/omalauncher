@@ -1,8 +1,8 @@
 package dev.omalauncher.ttfx
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import kotlin.math.floor
 import kotlin.math.min
@@ -19,6 +19,9 @@ class TtfxPainter(typeface: Typeface) {
     }
     private val strings = HashMap<Int, String>()
     private val textScales = HashMap<Int, Float>()
+
+    val cellWidth: Float get() = paint.measureText("M")
+    val cellHeight: Float get() = (paint.fontMetrics.descent - paint.fontMetrics.ascent).coerceAtLeast(0.01f)
 
     /** Picks the text size to fit at least [minCols] x [minRows] cells; returns the grid for widthPx x heightPx. */
     fun fit(widthPx: Int, heightPx: Int, minCols: Int, minRows: Int = 1): Pair<Int, Int> {
@@ -38,20 +41,43 @@ class TtfxPainter(typeface: Typeface) {
             floor(heightPx / cellHeight).toInt().coerceAtLeast(minRows)
     }
 
-    fun draw(canvas: Canvas, anim: TtfxAnimation, defaultColor: Int) {
-        val metrics = paint.fontMetrics
-        val cellWidth = paint.measureText("M")
-        val cellHeight = metrics.descent - metrics.ascent
-        val left = (canvas.width - anim.cols * cellWidth) / 2f
-        val top = (canvas.height - anim.rows * cellHeight) / 2f
+    fun draw(
+        canvas: Canvas,
+        anim: TtfxAnimation,
+        defaultColor: Int,
+        bounds: RectF = RectF(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat()),
+        tint: Int = 0,
+        tintFraction: Float = 0f,
+        alpha: Float = 1f,
+    ) {
+        draw(canvas, anim.glyphs, anim.colors, anim.cols, anim.rows, defaultColor, bounds, tint, tintFraction, alpha)
+    }
+
+    fun draw(
+        canvas: Canvas,
+        glyphs: IntArray,
+        colors: IntArray,
+        cols: Int,
+        rows: Int,
+        defaultColor: Int,
+        bounds: RectF = RectF(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat()),
+        tint: Int = 0,
+        tintFraction: Float = 0f,
+        alpha: Float = 1f,
+    ) {
+        require(cols > 0 && rows > 0 && glyphs.size >= cols * rows && colors.size >= cols * rows)
+        val left = bounds.left + (bounds.width() - cols * cellWidth) / 2f
+        val top = bounds.top + (bounds.height() - rows * cellHeight) / 2f
         val save = canvas.save()
-        canvas.clipRect(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat())
-        for (index in anim.glyphs.indices) {
-            val glyph = anim.glyphs[index]
+        canvas.clipRect(bounds)
+        val metrics = paint.fontMetrics
+        for (index in 0 until cols * rows) {
+            val glyph = glyphs[index]
             if (glyph == 0x20) continue
-            val col = index % anim.cols
-            val row = index / anim.cols
-            val cellColor = if (anim.colors[index] == 0) defaultColor else anim.colors[index]
+            val col = index % cols
+            val row = index / cols
+            val baseColor = if (colors[index] == 0) defaultColor else colors[index]
+            val cellColor = TtfxColors.scaleAlpha(TtfxColors.blend(baseColor, tint, tintFraction), alpha)
             val parts = BlockElements.parts(glyph)
             if (parts != null) {
                 val x0 = (left + col * cellWidth).roundToInt()
@@ -59,7 +85,7 @@ class TtfxPainter(typeface: Typeface) {
                 val y0 = (top + row * cellHeight).roundToInt()
                 val y1 = (top + (row + 1) * cellHeight).roundToInt()
                 blockPaint.color = cellColor
-                val cellAlpha = Color.alpha(cellColor)
+                val cellAlpha = (cellColor ushr 24) and 0xff
                 var part = 0
                 while (part < parts.size) {
                     blockPaint.alpha = (cellAlpha * parts[part + 4]).roundToInt()

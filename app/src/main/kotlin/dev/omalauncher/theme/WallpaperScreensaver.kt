@@ -1,0 +1,85 @@
+package dev.omalauncher.theme
+
+import kotlin.math.floor
+import kotlin.math.min
+
+internal object WallpaperScreensaver {
+    const val FADE_MS = 600L
+    const val MAX_EFFECT_MS = 10_000L
+    val EXCLUDED_EFFECTS = setOf("matrix", "thunderstorm")
+
+    data class Band(val rows: Int, val centerY: Float)
+    data class Surface(val width: Int, val height: Int, val format: Int)
+
+    fun surfaceResized(
+        old: Surface?,
+        width: Int,
+        height: Int,
+        format: Int,
+    ): Boolean = old != Surface(width, height, format)
+
+    fun band(
+        heightPx: Int,
+        topPx: Int,
+        bottomPx: Int,
+        cellHeight: Float,
+        textRows: Int,
+        position: Double,
+    ): Band {
+        val logoHeight = textRows * cellHeight
+        val inner = heightPx.toFloat() - topPx - bottomPx
+        if (logoHeight > inner) return Band(textRows, topPx + inner / 2f)
+        val free = (inner - logoHeight).coerceAtLeast(0f)
+        val centerY = topPx + logoHeight / 2f + position.coerceIn(0.0, 1.0).toFloat() * free
+        val spare =
+            floor(
+                min(
+                    centerY - topPx - logoHeight / 2f,
+                    heightPx - bottomPx - centerY - logoHeight / 2f,
+                ) / cellHeight,
+            ).toInt().coerceAtLeast(0)
+        return Band(textRows + 2 * spare, centerY)
+    }
+
+    enum class Trigger { CREATED, SCREEN_ON }
+
+    fun plays(trigger: Trigger, powerSave: Boolean): Boolean {
+        if (powerSave) return false
+        return when (trigger) {
+            Trigger.CREATED, Trigger.SCREEN_ON -> true
+        }
+    }
+
+    enum class Reload { OFF, REPLAY, RELAYOUT, REDRAW }
+
+    /** What changed on reload: disable, replay for enable or new text, relayout, or redraw without interrupting an effect. */
+    fun reload(
+        wasEnabled: Boolean,
+        enabled: Boolean,
+        oldText: String,
+        text: String,
+        oldPosition: Double,
+        position: Double,
+        oldSize: Double,
+        size: Double,
+    ): Reload {
+        if (!enabled) return Reload.OFF
+        if (!wasEnabled || oldText != text) return Reload.REPLAY
+        if (oldPosition != position || oldSize != size) return Reload.RELAYOUT
+        return Reload.REDRAW
+    }
+
+    fun fade(elapsedMs: Long): Float = (elapsedMs.coerceAtLeast(0L) / FADE_MS.toFloat()).coerceIn(0f, 1f)
+
+    fun staticGrid(lines: List<String>, cols: Int, rows: Int): IntArray {
+        require(cols > 0 && rows > 0)
+        val grid = IntArray(cols * rows) { 0x20 }
+        val start = ((rows - lines.size) / 2).coerceAtLeast(0)
+        lines.forEachIndexed { lineIndex, line ->
+            val row = start + lineIndex
+            if (row !in 0 until rows) return@forEachIndexed
+            line.take(cols).forEachIndexed { col, glyph -> grid[row * cols + col] = glyph.code }
+        }
+        return grid
+    }
+}

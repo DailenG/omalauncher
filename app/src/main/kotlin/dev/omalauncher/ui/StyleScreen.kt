@@ -62,8 +62,7 @@ import dev.omalauncher.theme.ThemeDownload
 import dev.omalauncher.theme.ThemeStore
 import dev.omalauncher.theme.Toml
 import java.io.File
-import kotlin.math.ceil
-import kotlin.math.floor
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -96,7 +95,7 @@ fun StyleScreen(
                 },
                 onRemove = { removing = it },
             )
-            store.current?.let { BackgroundSection(store, it) }
+            store.current?.let { BackgroundSection(store, it, style = runtime.style) }
             // Style choices don't depend on a theme, so they're offered before themes are downloaded too.
             Heading("home screen")
             val style = runtime.style
@@ -206,6 +205,7 @@ private fun ThemeSection(
 private fun BackgroundSection(
     store: ThemeStore,
     theme: OmarchyTheme,
+    style: StyleStore,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -255,6 +255,14 @@ private fun BackgroundSection(
         } else {
             BasicText("[ use as android wallpaper + system colors ]", style = Mono.copy(color = Palette.accent))
         }
+    }
+    Flag("wallpaper screensaver", "on", "off", style, Style.WALLPAPER_SCREENSAVER)
+    if (store.liveWallpaperActive) {
+        Stepper("position", style, Style.WALLPAPER_SCREENSAVER_POSITION, step = 0.1, unit = "")
+        Stepper("size", style, Style.WALLPAPER_SCREENSAVER_SIZE, step = 0.1, unit = "")
+        Stepper("dim", style, Style.WALLPAPER_SCREENSAVER_DIM, step = 0.05, unit = "")
+    } else {
+        OptionHint("needs the live wallpaper", Modifier.padding(bottom = 4.dp))
     }
 }
 
@@ -372,11 +380,25 @@ private fun Stepper(
     label: String,
     style: StyleStore,
     vararg settings: Setting.Number,
+    step: Double = 1.0,
+    unit: String = " dp",
 ) {
     val all = settings.toList()
     val setting = all.first()
     val value = style.style[setting]
     fun set(v: Double) = style.update { it.with(all) { s -> v.coerceIn(s.range) } }
+    fun adjust(direction: Int): Double {
+        val scaled = value / step
+        val nearest = scaled.roundToInt()
+        val exact = kotlin.math.abs(scaled - nearest) < 1e-9
+        val target =
+            if (direction < 0) {
+                if (exact) nearest - 1 else kotlin.math.ceil(scaled).toInt() - 1
+            } else {
+                if (exact) nearest + 1 else kotlin.math.floor(scaled).toInt() + 1
+            }
+        return target * step
+    }
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         OptionLabel(label)
         Row(Modifier.frame(1.dp, Palette.border, radius = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -384,13 +406,13 @@ private fun Stepper(
             val up = value < setting.range.endInclusive
             BasicText(
                 "−",
-                Modifier.clickable(enabled = down) { set(ceil(value - 1)) }.padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier.clickable(enabled = down) { set(adjust(-1)) }.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = Mono.copy(color = if (down) Palette.foreground else Palette.muted),
             )
-            BasicText(Toml.format(value) + " dp", Modifier.widthIn(min = 64.dp), style = Mono.copy(textAlign = TextAlign.Center), softWrap = false)
+            BasicText(Toml.format(value) + unit, Modifier.widthIn(min = 64.dp), style = Mono.copy(textAlign = TextAlign.Center), softWrap = false)
             BasicText(
                 "+",
-                Modifier.clickable(enabled = up) { set(floor(value + 1)) }.padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier.clickable(enabled = up) { set(adjust(1)) }.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = Mono.copy(color = if (up) Palette.foreground else Palette.muted),
             )
         }
