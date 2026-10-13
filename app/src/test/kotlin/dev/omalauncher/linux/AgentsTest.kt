@@ -20,7 +20,7 @@ class AgentsTest {
 
     @Test fun ohMyPiUsesReadOnlyToolsForSharedWidgets() {
         assertEquals(
-            "omp --tools read,grep,glob,find --approval-mode always-ask " + shellQuote("hi"),
+            "omp --tools read,grep,glob --approval-mode always-ask " + shellQuote("hi"),
             agentInvocation("omp", "hi", readOnly = true),
         )
         assertEquals("omp " + shellQuote("hi"), agentInvocation("omp", "hi"))
