@@ -71,6 +71,12 @@ class StyleTest {
         assertEquals(Style(), decoded.style)
     }
 
+    @Test fun screensaverCanBeDisabledOnHome() {
+        val decoded = StyleFile.decode(mapOf("screensaver.idle" to 0.0))
+        assertEquals(0.0, decoded.style[Style.SCREENSAVER_IDLE], 0.0)
+        assertEquals(emptyList<String>(), decoded.problems)
+    }
+
     @Test fun badValuesKeepThePreviousOne() {
         val previous = Style().with(Style.GAPS_IN, 10.0)
         val t = linkedMapOf<String, Any>("widgets.gaps-in" to 99.0, "corners.scale" to "round", "status-bar.background" to "acent", "home.tiles" to true)

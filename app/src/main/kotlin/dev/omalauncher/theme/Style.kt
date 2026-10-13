@@ -159,6 +159,14 @@ class Style(
 
         val TERMINAL_FONT = Setting.Text("terminal.font", "JetBrains Mono", "The terminals' font family; fc-list :spacing=100 lists those installed.")
         val TERMINAL_TEXT = Setting.Number("terminal.text", 12.0, 6.0..32.0, "The terminals' em size in dp, before Android's font size: 10 smaller, 12 default, 14 larger.")
+
+        val SCREENSAVER_IDLE =
+            Setting.Number(
+                "screensaver.idle",
+                60.0,
+                0.0..3600.0,
+                "Seconds on home without a touch before the Omarchy screensaver covers it; 0 never. While plugged in it keeps the screen on; on battery, if Android's screen timeout is shorter, it starts 10 s before the screen turns off.",
+            )
     }
 
     /** A system bar's band on home; [name] is its section in the file. */
@@ -199,7 +207,7 @@ object StyleFile {
         with(Style) {
             listOf(THEME, BACKGROUND, APP_TILES, RECENT_APPS, GAPS_IN, GAPS_OUT, TILE_BORDER_WIDTH, TILE_BORDER, TILE_BORDER_FOCUSED) +
                 listOf(SCREEN_GAPS_OUT, SCREEN_BORDER_WIDTH, MONOCHROME_ICONS, CORNER_SCALE) +
-                STATUS_BAR.all + NAVIGATION_BAR.all + listOf(TERMINAL_FONT, TERMINAL_TEXT)
+                STATUS_BAR.all + NAVIGATION_BAR.all + listOf(TERMINAL_FONT, TERMINAL_TEXT, SCREENSAVER_IDLE)
         }
 
     private val byKey = ALL.associateBy { it.key }

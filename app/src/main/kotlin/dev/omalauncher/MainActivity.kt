@@ -2,15 +2,26 @@ package dev.omalauncher
 
 import android.app.ActivityManager
 import android.app.role.RoleManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
@@ -19,12 +30,26 @@ import dev.omalauncher.ui.applySystemBars
 import dev.omalauncher.ui.LauncherRoot
 import dev.omalauncher.ui.LauncherState
 import dev.omalauncher.ui.PromptRequest
+import dev.omalauncher.screensaver.ScreensaverPolicy
+import dev.omalauncher.screensaver.pluggedIn
+import dev.omalauncher.screensaver.screenOffMillis
+import dev.omalauncher.theme.Style
 import dev.omalauncher.widgets.market.Share
 
 /** The home screen: widgets, pinned apps and the drawer; Linux windows open as their own tasks. */
 class MainActivity : ComponentActivity() {
     private val runtime get() = (application as App).runtime
     private val state = LauncherState()
+    private var idle: Job? = null
+    private var swallowing = false
+    private var powerReceiverRegistered = false
+    private val powerReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                updateKeepScreenOn()
+                if (!state.screensaver) armIdle()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +57,23 @@ class MainActivity : ComponentActivity() {
         runtime.start()
         setContent {
             LauncherRoot(runtime, state)
-            LaunchedEffect(Palette.isLight) { applySystemBars(this@MainActivity, Palette.isLight) }
+            LaunchedEffect(Palette.isLight, state.screensaver) {
+                if (!state.screensaver) applySystemBars(this@MainActivity, Palette.isLight)
+            }
+        }
+        lifecycleScope.launch {
+            snapshotFlow { state.screensaver }.collect { showing ->
+                updateKeepScreenOn()
+                val controller = WindowCompat.getInsetsController(window, window.decorView)
+                if (showing) {
+                    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    controller.hide(WindowInsetsCompat.Type.systemBars())
+                } else {
+                    applySystemBars(this@MainActivity, Palette.isLight)
+                    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                    controller.show(WindowInsetsCompat.Type.systemBars())
+                }
+            }
         }
         handleDebugExec(intent)
         handleSharedWidget(intent)
@@ -94,6 +135,51 @@ class MainActivity : ComponentActivity() {
         runtime.androidApps.checkShortcutAccess()
         // The user may have set or replaced the wallpaper while we were in the background.
         lifecycleScope.launch { runtime.themes.refreshLiveWallpaper() }
+        if (!powerReceiverRegistered) {
+            ContextCompat.registerReceiver(
+                this,
+                powerReceiver,
+                IntentFilter(Intent.ACTION_POWER_CONNECTED).apply {
+                    addAction(Intent.ACTION_POWER_DISCONNECTED)
+                },
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            powerReceiverRegistered = true
+        }
+        updateKeepScreenOn()
+        armIdle()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        idle?.cancel()
+        idle = null
+        swallowing = false
+        state.screensaver = false
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (powerReceiverRegistered) {
+            unregisterReceiver(powerReceiver)
+            powerReceiverRegistered = false
+        }
+    }
+
+    private fun armIdle() {
+        idle?.cancel()
+        val seconds = runtime.style.style[Style.SCREENSAVER_IDLE]
+        val delayMillis = ScreensaverPolicy.delayMillis(seconds, screenOffMillis(), pluggedIn()) ?: return
+        idle =
+            lifecycleScope.launch {
+                delay(delayMillis)
+                if (runtime.launcherReady) state.screensaver = true
+            }
+    }
+
+    private fun updateKeepScreenOn() {
+        if (state.screensaver && pluggedIn()) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     /** Drops Recents cards whose Linux window no longer exists (app exited or process restarted). */
@@ -119,7 +205,28 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Launcher shortcuts (Super+key), then typing into a terminal tile that has the keyboard. Back stays the launcher's. */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (state.screensaver && event.actionMasked == MotionEvent.ACTION_DOWN) {
+            state.screensaver = false
+            swallowing = true
+            armIdle()
+            return true
+        }
+        if (swallowing) {
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) swallowing = false
+            return true
+        }
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) armIdle()
+        return super.dispatchTouchEvent(event)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (state.screensaver) {
+            state.screensaver = false
+            armIdle()
+            return true
+        }
+        if (event.action == KeyEvent.ACTION_DOWN) armIdle()
         if (event.isMetaPressed && event.action == KeyEvent.ACTION_DOWN && shortcut(event.keyCode)) return true
         if (event.keyCode != KeyEvent.KEYCODE_BACK && runtime.terminals.active != null && runtime.keyboard.handle(event)) return true
         return super.dispatchKeyEvent(event)
