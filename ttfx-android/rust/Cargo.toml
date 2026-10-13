@@ -1,0 +1,19 @@
+[package]
+name = "ttfx_android"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+clap = "4.5"
+jni = "0.21"
+ttfx = { git = "https://github.com/omacom/ttfx", rev = "921bd551c308c235e01c5867f0199efe0691c271" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "unwind"
