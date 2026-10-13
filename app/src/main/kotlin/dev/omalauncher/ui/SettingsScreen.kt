@@ -69,6 +69,7 @@ fun SettingsScreen(
                     runCatching {
                         context.startActivity(Intent(Settings.ACTION_DREAM_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     }
+                    Unit
                 },
                 Triple("linux", linuxStatus, onLinux),
                 if (installed) {
