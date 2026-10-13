@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import dev.omalauncher.ttfx.TtfxAnimation
+import dev.omalauncher.screensaver.ScreensaverText
 import dev.omalauncher.ttfx.TtfxScreensaverView
 
 class TtfxPreviewActivity : Activity() {
@@ -16,6 +16,6 @@ class TtfxPreviewActivity : Activity() {
             View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
-        setContentView(TtfxScreensaverView(this, TtfxAnimation.omarchyLogo(this)).apply { setOnClickListener { finish() } })
+        setContentView(TtfxScreensaverView(this, ScreensaverText.load(this)).apply { setOnClickListener { finish() } })
     }
 }

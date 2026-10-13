@@ -6,6 +6,9 @@ Dates are when the build was uploaded to Play.
 
 ## Unreleased
 
+- The Omarchy screensaver plays `~/.config/omarchy/branding/screensaver.txt`,
+  seeded with the logo (edit it from Linux; delete it to restore the logo).
+  Block characters render crisply, with a 24dp edge margin.
 - Omarchy's screensaver can be Android's screen saver, cover home after a
   minute of idle (`screensaver.idle` in `style.toml`), or start from a Quick
   Settings tile; it keeps the screen on while charging.

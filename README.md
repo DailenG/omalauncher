@@ -22,7 +22,9 @@ window opens as its own Android task, with its own card in Recents.
   `~/.config/omarchy/themes`
 - **Screensaver**: Omarchy's ttfx animation as Android's screen saver, over
   home after a minute idle, or from a Quick Settings tile; keeps the screen on
-  while charging
+  while charging. It plays `~/.config/omarchy/branding/screensaver.txt` as in
+  Omarchy, seeded with the logo: edit it from Linux, or delete it to go back to
+  the logo.
 - **Widgets** written in OWL, a small declarative language you can edit on the
   phone, plus a [widget store](https://github.com/SimonSchubert/omarchy-widgets)
 - **Linux, optional**: pacman and the AUR, Linux apps in their own windows,

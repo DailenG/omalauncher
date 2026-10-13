@@ -31,6 +31,9 @@ object LauncherData {
     /** The user's extra backgrounds, per theme. The guest sees ~/.config/omarchy/backgrounds. */
     fun userBackgroundsDir(context: Context) = File(context.filesDir, "backgrounds")
 
+    /** The guest sees ~/.config/omarchy/branding. */
+    fun brandingDir(context: Context) = File(context.filesDir, "branding")
+
     /** Widget files. The guest sees ~/.config/omalauncher/widgets. */
     fun widgetsDir(context: Context) = File(context.filesDir, "widgets")
 
