@@ -12,21 +12,30 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Build
+import android.os.FileObserver
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.service.wallpaper.WallpaperService
+import android.util.Log
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import androidx.core.content.ContextCompat
+import dev.omalauncher.LauncherData
 import dev.omalauncher.screensaver.ScreensaverText
 import dev.omalauncher.ttfx.TtfxAnimation
 import dev.omalauncher.ttfx.TtfxFramePacer
 import dev.omalauncher.ttfx.TtfxPainter
 import dev.omalauncher.ui.decodeForScreen
 import dev.omalauncher.ui.wallpaperCrop
+import java.io.File
 import kotlin.math.roundToInt
 import java.util.concurrent.Executors
+
+private const val TAG = "OmarchyWallpaper"
+private const val FILE_RELOAD_DELAY_MS = 150L
+private val FILE_EVENT_MASK =
+    FileObserver.CLOSE_WRITE or FileObserver.MOVED_TO or FileObserver.CREATE or FileObserver.DELETE
 
 /**
  * Android live wallpaper showing the current Omarchy background. Its main
@@ -59,11 +68,18 @@ class OmarchyWallpaperService : WallpaperService() {
         private val pacer = TtfxFramePacer(60)
         private val choreographer = Choreographer.getInstance()
         private var animation: TtfxAnimation? = null
+        private var framesDrawn = 0
         private var animationStartedAt = 0L
         private var fadeStartedAt = 0L
+        private var firstFrameLogged = false
+        private var effectEndReason = ""
+        private var lastDrawState: String? = null
         private var framePosted = false
         private var pendingTrigger = false
         private var layout: ScreensaverLayout? = null
+        private var styleObserver: FileObserver? = null
+        private var screensaverTextObserver: FileObserver? = null
+        private val reloadRunnable = Runnable { reload() }
 
         /** Where the launcher's pages are scrolled, 0 to 1: the background slides along. */
         private var xOffset = 0.5f
@@ -73,11 +89,20 @@ class OmarchyWallpaperService : WallpaperService() {
         private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
             framePosted = false
             if (animation == null || !isVisible) return@FrameCallback
+            val now = android.os.SystemClock.uptimeMillis()
+            if (!firstFrameLogged) {
+                firstFrameLogged = true
+                Log.d(TAG, "first frame callback after=${now - animationStartedAt}ms")
+            }
             if (pacer.shouldDraw(frameTimeNanos)) {
-                val now = android.os.SystemClock.uptimeMillis()
                 val current = animation ?: return@FrameCallback
-                if (fadeStartedAt == 0L && (!current.next() || now - animationStartedAt >= WallpaperScreensaver.MAX_EFFECT_MS)) {
-                    fadeStartedAt = now
+                if (fadeStartedAt == 0L) {
+                    val hasNext = current.next()
+                    val maxEffectTimeReached = now - animationStartedAt >= WallpaperScreensaver.MAX_EFFECT_MS
+                    if (!hasNext || maxEffectTimeReached) {
+                        effectEndReason = if (!hasNext) "next()==false" else "MAX_EFFECT_MS"
+                        fadeStartedAt = now
+                    }
                 }
                 if (fadeStartedAt != 0L && now - fadeStartedAt >= WallpaperScreensaver.FADE_MS) {
                     settle()
@@ -97,7 +122,23 @@ class OmarchyWallpaperService : WallpaperService() {
                             Intent.ACTION_USER_PRESENT -> WallpaperScreensaver.Trigger.USER_PRESENT
                             else -> return
                         }
-                    trigger(trigger)
+                    trigger(trigger, intent.action.orEmpty())
+                }
+            }
+
+        private fun fileObserver(
+            directory: File,
+            fileName: String,
+        ): FileObserver =
+            object : FileObserver(directory, FILE_EVENT_MASK) {
+                override fun onEvent(
+                    event: Int,
+                    path: String?,
+                ) {
+                    if (path == fileName) {
+                        main.removeCallbacks(reloadRunnable)
+                        main.postDelayed(reloadRunnable, FILE_RELOAD_DELAY_MS)
+                    }
                 }
             }
 
@@ -118,6 +159,8 @@ class OmarchyWallpaperService : WallpaperService() {
             style = StyleStore.read(this@OmarchyWallpaperService)
             screensaverText = ScreensaverText.load(this@OmarchyWallpaperService)
             pendingTrigger = style[Style.WALLPAPER_SCREENSAVER]
+            startWatchingFiles()
+            Log.d(TAG, "onCreate isPreview=$isPreview flag=${screenSaverEnabled()}")
             reload()
         }
 
@@ -125,9 +168,23 @@ class OmarchyWallpaperService : WallpaperService() {
             ThemeStore.changeListeners.remove(onThemeChanged)
             StyleStore.changeListeners.remove(onStyleChanged)
             runCatching { unregisterReceiver(triggerReceiver) }
-            stopAnimation()
+            main.removeCallbacks(reloadRunnable)
+            styleObserver?.stopWatching()
+            styleObserver = null
+            screensaverTextObserver?.stopWatching()
+            screensaverTextObserver = null
+            stopAnimation("destroy")
             decoder.shutdownNow()
             super.onDestroy()
+        }
+
+        private fun startWatchingFiles() {
+            styleObserver =
+                fileObserver(LauncherData.styleDir(this@OmarchyWallpaperService), StyleStore.FILE)
+                    .also { it.startWatching() }
+            screensaverTextObserver =
+                fileObserver(LauncherData.brandingDir(this@OmarchyWallpaperService), ScreensaverText.FILE)
+                    .also { it.startWatching() }
         }
 
         override fun onSurfaceChanged(
@@ -137,11 +194,28 @@ class OmarchyWallpaperService : WallpaperService() {
             height: Int,
         ) {
             super.onSurfaceChanged(holder, format, width, height)
+            Log.d(TAG, "onSurfaceChanged ${width}x$height")
             if (screenSaverEnabled()) {
-                stopAnimation()
+                stopAnimation("surface changed")
                 layout = null
             }
             draw()
+        }
+
+        override fun onSurfaceCreated(holder: SurfaceHolder) {
+            super.onSurfaceCreated(holder)
+            Log.d(TAG, "onSurfaceCreated")
+        }
+
+        override fun onSurfaceRedrawNeeded(holder: SurfaceHolder) {
+            super.onSurfaceRedrawNeeded(holder)
+            Log.d(TAG, "onSurfaceRedrawNeeded")
+            if (animation == null) draw()
+        }
+
+        override fun onSurfaceDestroyed(holder: SurfaceHolder) {
+            Log.d(TAG, "onSurfaceDestroyed")
+            super.onSurfaceDestroyed(holder)
         }
 
         override fun onOffsetsChanged(
@@ -159,12 +233,13 @@ class OmarchyWallpaperService : WallpaperService() {
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
+            Log.d(TAG, "onVisibilityChanged visible=$visible pendingTrigger=$pendingTrigger animation=${animation != null}")
             if (!screenSaverEnabled()) {
                 if (visible) draw()
                 return
             }
             if (!visible) {
-                stopAnimation()
+                stopAnimation("hidden")
             } else if (pendingTrigger) {
                 startEffect()
             } else {
@@ -189,7 +264,7 @@ class OmarchyWallpaperService : WallpaperService() {
                     style = loadedStyle
                     screensaverText = loadedText
                     val enabled = screenSaverEnabled()
-                    when (
+                    val outcome =
                         WallpaperScreensaver.reload(
                             wasEnabled,
                             enabled,
@@ -200,19 +275,20 @@ class OmarchyWallpaperService : WallpaperService() {
                             oldSize,
                             style[Style.WALLPAPER_SCREENSAVER_SIZE],
                         )
-                    ) {
+                    Log.d(TAG, "reload outcome=$outcome")
+                    when (outcome) {
                         WallpaperScreensaver.Reload.OFF -> {
                             pendingTrigger = false
-                            stopAnimation()
+                            stopAnimation("reload off")
                             layout = null
                         }
                         WallpaperScreensaver.Reload.REPLAY -> {
                             pendingTrigger = true
-                            stopAnimation()
+                            stopAnimation("reload replay")
                             layout = null
                         }
                         WallpaperScreensaver.Reload.RELAYOUT -> {
-                            stopAnimation()
+                            stopAnimation("reload relayout")
                             layout = null
                         }
                         WallpaperScreensaver.Reload.REDRAW -> Unit
@@ -232,7 +308,10 @@ class OmarchyWallpaperService : WallpaperService() {
 
         private fun screenSaverEnabled(): Boolean = style[Style.WALLPAPER_SCREENSAVER]
 
-        private fun trigger(trigger: WallpaperScreensaver.Trigger) {
+        private fun trigger(
+            trigger: WallpaperScreensaver.Trigger,
+            action: String,
+        ) {
             if (decoder.isShutdown) return
             decoder.execute {
                 val loadedStyle = StyleStore.read(this@OmarchyWallpaperService)
@@ -240,12 +319,14 @@ class OmarchyWallpaperService : WallpaperService() {
                 main.post {
                     style = loadedStyle
                     screensaverText = loadedText
-                    if (!screenSaverEnabled()) return@post
                     val flags = if (Build.VERSION.SDK_INT >= 34) getWallpaperFlags() else null
                     val powerSave = getSystemService(PowerManager::class.java)?.isPowerSaveMode == true
-                    if (!WallpaperScreensaver.plays(trigger, flags, powerSave)) {
+                    val plays = WallpaperScreensaver.plays(trigger, flags, powerSave)
+                    Log.d(TAG, "trigger action=$action flags=$flags powerSave=$powerSave plays=$plays isVisible=$isVisible")
+                    if (!screenSaverEnabled()) return@post
+                    if (!plays) {
                         pendingTrigger = false
-                        stopAnimation()
+                        stopAnimation("trigger ineligible")
                         layout = null
                         draw()
                         return@post
@@ -271,21 +352,31 @@ class OmarchyWallpaperService : WallpaperService() {
         }
 
         private fun startEffect() {
-            if (!screenSaverEnabled() || !isVisible) return
+            if (!screenSaverEnabled()) {
+                Log.d(TAG, "startEffect skipped: disabled")
+                return
+            }
+            if (!isVisible) {
+                Log.d(TAG, "startEffect skipped: not visible")
+                return
+            }
             if (getSystemService(PowerManager::class.java)?.isPowerSaveMode == true) {
+                Log.d(TAG, "startEffect skipped: power save")
                 pendingTrigger = false
-                stopAnimation()
+                stopAnimation("power save")
                 draw()
                 return
             }
             val holder = surfaceHolder
             val width = holder.surfaceFrame.width()
             val height = holder.surfaceFrame.height()
-            if (width <= 0 || height <= 0) return
+            if (width <= 0 || height <= 0) {
+                Log.d(TAG, "startEffect skipped: surface ${width}x$height")
+                return
+            }
             val currentLayout = layoutFor(width, height)
             layout = currentLayout
-            stopAnimation()
-            animation =
+            val nextAnimation =
                 TtfxAnimation.random(
                     screensaverText,
                     currentLayout.cols,
@@ -293,9 +384,16 @@ class OmarchyWallpaperService : WallpaperService() {
                     60,
                     exclude = WallpaperScreensaver.EXCLUDED_EFFECTS,
                 )
+            stopAnimation("restart")
+            animation = nextAnimation
+            Log.d(TAG, "startEffect effect=${nextAnimation.effect} ${currentLayout.cols}x${currentLayout.rows} surface=${width}x${height}")
             pendingTrigger = false
             animationStartedAt = android.os.SystemClock.uptimeMillis()
             fadeStartedAt = 0L
+            framesDrawn = 0
+            firstFrameLogged = false
+            effectEndReason = ""
+            lastDrawState = null
             pacer.reset()
             postFrame()
         }
@@ -307,7 +405,9 @@ class OmarchyWallpaperService : WallpaperService() {
             }
         }
 
-        private fun stopAnimation() {
+        private fun stopAnimation(reason: String) {
+            val wasRunning = animation != null
+            if (wasRunning) Log.d(TAG, "stopAnimation reason=$reason")
             if (framePosted) {
                 choreographer.removeFrameCallback(frameCallback)
                 framePosted = false
@@ -320,14 +420,19 @@ class OmarchyWallpaperService : WallpaperService() {
         }
 
         private fun settle() {
-            stopAnimation()
+            val elapsed = android.os.SystemClock.uptimeMillis() - animationStartedAt
+            Log.d(TAG, "settle frames=$framesDrawn elapsed=${elapsed}ms via=$effectEndReason")
+            stopAnimation("settled")
             pendingTrigger = false
             draw()
         }
 
         private fun draw() {
             val holder = surfaceHolder
-            val canvas = runCatching { holder.lockHardwareCanvas() }.getOrNull() ?: return
+            val canvas =
+                runCatching { holder.lockHardwareCanvas() }
+                    .onFailure { Log.w(TAG, "lockHardwareCanvas failed", it) }
+                    .getOrNull() ?: return
             try {
                 canvas.drawColor(color("background", Color.BLACK))
                 if (screenSaverEnabled()) {
@@ -346,6 +451,8 @@ class OmarchyWallpaperService : WallpaperService() {
                             tintFraction,
                             fadeAlpha,
                         )
+                        logDrawState("animation")
+                        framesDrawn++
                     } else {
                         painter.draw(
                             canvas,
@@ -357,8 +464,10 @@ class OmarchyWallpaperService : WallpaperService() {
                             currentLayout.bounds,
                             alpha = style[Style.WALLPAPER_SCREENSAVER_DIM].toFloat(),
                         )
+                        logDrawState("still")
                     }
                 } else {
+                    lastDrawState = "image"
                     bitmap?.let { bmp ->
                         val src = wallpaperCrop(bmp.width, bmp.height, canvas.width, canvas.height, xOffset)
                         canvas.drawBitmap(bmp, src, Rect(0, 0, canvas.width, canvas.height), paint)
@@ -366,6 +475,13 @@ class OmarchyWallpaperService : WallpaperService() {
                 }
             } finally {
                 holder.unlockCanvasAndPost(canvas)
+            }
+        }
+
+        private fun logDrawState(state: String) {
+            if (lastDrawState != state) {
+                Log.d(TAG, "draw state=$state")
+                lastDrawState = state
             }
         }
 
