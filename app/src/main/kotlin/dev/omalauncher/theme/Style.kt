@@ -167,6 +167,33 @@ class Style(
                 0.0..3600.0,
                 "Seconds on home without a touch before the Omarchy screensaver covers it; 0 never. While plugged in it keeps the screen on; on battery, if Android's screen timeout is shorter, it starts 10 s before the screen turns off.",
             )
+        val WALLPAPER_SCREENSAVER =
+            Setting.Flag(
+                "wallpaper.screensaver",
+                false,
+                "Android's wallpaper plays the Omarchy screensaver (when it's omalauncher's live wallpaper): one effect when the screen turns on, then the logo holds still.",
+            )
+        val WALLPAPER_SCREENSAVER_POSITION =
+            Setting.Number(
+                "wallpaper.screensaver-position",
+                0.5,
+                0.0..1.0,
+                "Where the wallpaper's logo sits: 0 top, 0.5 centered, 1 bottom, inside a 24 dp margin.",
+            )
+        val WALLPAPER_SCREENSAVER_SIZE =
+            Setting.Number(
+                "wallpaper.screensaver-size",
+                1.0,
+                0.2..1.0,
+                "How much of the screen's width, inside the margin, the wallpaper's logo may take: 1 all of it.",
+            )
+        val WALLPAPER_SCREENSAVER_DIM =
+            Setting.Number(
+                "wallpaper.screensaver-dim",
+                0.35,
+                0.0..1.0,
+                "How bright the wallpaper's logo stays once its effect ends: 1 full, 0.35 dimmed behind tiles, 0 gone.",
+            )
     }
 
     /** A system bar's band on home; [name] is its section in the file. */
@@ -207,7 +234,17 @@ object StyleFile {
         with(Style) {
             listOf(THEME, BACKGROUND, APP_TILES, RECENT_APPS, GAPS_IN, GAPS_OUT, TILE_BORDER_WIDTH, TILE_BORDER, TILE_BORDER_FOCUSED) +
                 listOf(SCREEN_GAPS_OUT, SCREEN_BORDER_WIDTH, MONOCHROME_ICONS, CORNER_SCALE) +
-                STATUS_BAR.all + NAVIGATION_BAR.all + listOf(TERMINAL_FONT, TERMINAL_TEXT, SCREENSAVER_IDLE)
+                STATUS_BAR.all +
+                    NAVIGATION_BAR.all +
+                    listOf(
+                        TERMINAL_FONT,
+                        TERMINAL_TEXT,
+                        SCREENSAVER_IDLE,
+                        WALLPAPER_SCREENSAVER,
+                        WALLPAPER_SCREENSAVER_POSITION,
+                        WALLPAPER_SCREENSAVER_SIZE,
+                        WALLPAPER_SCREENSAVER_DIM,
+                    )
         }
 
     private val byKey = ALL.associateBy { it.key }

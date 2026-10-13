@@ -24,6 +24,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.CopyOnWriteArraySet
 
 private const val TAG = "style"
 
@@ -48,7 +49,9 @@ class StyleStore(
     var style: Style
         get() = LauncherStyle.style
         private set(value) {
+            if (LauncherStyle.style == value) return
             LauncherStyle.style = value
+            changeListeners.forEach { it() }
         }
 
     /** Why parts of the file were ignored: the last read's, then what [report] adds. */
@@ -272,6 +275,9 @@ class StyleStore(
 
         /** Whether a store has read the style in this process; [LauncherStyle] holds it then. */
         @Volatile private var running = false
+
+        /** Called on the main thread whenever the in-memory style changes. */
+        val changeListeners = CopyOnWriteArraySet<() -> Unit>()
 
         /**
          * The style, for the wallpaper service. In the launcher's process it's

@@ -77,6 +77,29 @@ class StyleTest {
         assertEquals(emptyList<String>(), decoded.problems)
     }
 
+    @Test fun wallpaperScreensaverDefaultsAndDecoding() {
+        assertFalse(Style()[Style.WALLPAPER_SCREENSAVER])
+        assertEquals(0.5, Style()[Style.WALLPAPER_SCREENSAVER_POSITION], 0.0)
+        assertEquals(1.0, Style()[Style.WALLPAPER_SCREENSAVER_SIZE], 0.0)
+        assertEquals(0.35, Style()[Style.WALLPAPER_SCREENSAVER_DIM], 0.0)
+        val decoded =
+            StyleFile.decode(
+                Toml.parse(
+                    """
+                    wallpaper.screensaver = true
+                    wallpaper.screensaver-position = 0
+                    wallpaper.screensaver-size = 0.2
+                    wallpaper.screensaver-dim = 1
+                    """.trimIndent(),
+                ),
+            )
+        assertTrue(decoded.style[Style.WALLPAPER_SCREENSAVER])
+        assertEquals(0.0, decoded.style[Style.WALLPAPER_SCREENSAVER_POSITION], 0.0)
+        assertEquals(0.2, decoded.style[Style.WALLPAPER_SCREENSAVER_SIZE], 0.0)
+        assertEquals(1.0, decoded.style[Style.WALLPAPER_SCREENSAVER_DIM], 0.0)
+        assertEquals(emptyList<String>(), decoded.problems)
+    }
+
     @Test fun badValuesKeepThePreviousOne() {
         val previous = Style().with(Style.GAPS_IN, 10.0)
         val t = linkedMapOf<String, Any>("widgets.gaps-in" to 99.0, "corners.scale" to "round", "status-bar.background" to "acent", "home.tiles" to true)
