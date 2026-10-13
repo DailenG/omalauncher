@@ -204,6 +204,20 @@
                 android:resource="@xml/wallpaper" />
         </service>
 
+        <service
+            android:name=".screensaver.OmarchyDreamService"
+            android:exported="true"
+            android:label="@string/screensaver_label"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/dream" />
+        </service>
+
         <!-- Notification access lets widgets show and control what's playing (android.media) and list notifications (android.notifications). -->
         <service
             android:name=".widgets.runtime.MediaListener"
