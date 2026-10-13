@@ -1,8 +1,8 @@
 widget "agents" {
   page: 2
   order: 2
-  size: 4x5
-  minSize: 3x4
+  size: 3x5
+  minSize: 3x3
 
   source installed = cmd("for a in claude opencode codex grok copilot crush cursor-agent agy pi omp; do command -v $a >/dev/null && printf '%s ' $a; done") every 5m
 
