@@ -50,9 +50,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.omalauncher.Runtime
+import dev.omalauncher.screensaver.ScreensaverText
 import dev.omalauncher.theme.Style
 import dev.omalauncher.theme.StyleStore
-import dev.omalauncher.ttfx.TtfxAnimation
 import dev.omalauncher.ttfx.TtfxScreensaverView
 import dev.omalauncher.widgets.checkSecretsCommand
 import dev.omalauncher.widgets.publishWidgetCommand
@@ -78,7 +78,7 @@ fun LauncherRoot(
         if (state.screensaver) {
             AndroidView(
                 factory = { context ->
-                    TtfxScreensaverView(context, TtfxAnimation.omarchyLogo(context)).apply { setBackgroundColor(Color.BLACK) }
+                    TtfxScreensaverView(context, ScreensaverText.load(context)).apply { setBackgroundColor(Color.BLACK) }
                 },
                 modifier = Modifier.fillMaxSize(),
             )

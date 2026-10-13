@@ -14,7 +14,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import dev.omalauncher.ttfx.TtfxAnimation
 import dev.omalauncher.ttfx.TtfxScreensaverView
 
 class ScreensaverActivity : Activity() {
@@ -34,7 +33,7 @@ class ScreensaverActivity : Activity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         setContentView(
-            TtfxScreensaverView(this, TtfxAnimation.omarchyLogo(this)).apply {
+            TtfxScreensaverView(this, ScreensaverText.load(this)).apply {
                 setBackgroundColor(Color.BLACK)
             },
         )

@@ -47,6 +47,7 @@ class Proot(
             "$GUEST_HOME/.config/omalauncher/style" to LauncherData.styleDir(context),
             "$GUEST_HOME/.config/omarchy/themes" to LauncherData.userThemesDir(context),
             "$GUEST_HOME/.config/omarchy/backgrounds" to LauncherData.userBackgroundsDir(context),
+            "$GUEST_HOME/.config/omarchy/branding" to LauncherData.brandingDir(context),
         )
 
     /**

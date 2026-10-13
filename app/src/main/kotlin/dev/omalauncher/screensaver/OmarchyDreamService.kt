@@ -2,7 +2,6 @@ package dev.omalauncher.screensaver
 
 import android.graphics.Color
 import android.service.dreams.DreamService
-import dev.omalauncher.ttfx.TtfxAnimation
 import dev.omalauncher.ttfx.TtfxScreensaverView
 
 class OmarchyDreamService : DreamService() {
@@ -11,7 +10,7 @@ class OmarchyDreamService : DreamService() {
         isInteractive = false
         isFullscreen = true
         setContentView(
-            TtfxScreensaverView(this, TtfxAnimation.omarchyLogo(this)).apply {
+            TtfxScreensaverView(this, ScreensaverText.load(this)).apply {
                 setBackgroundColor(Color.BLACK)
             },
         )

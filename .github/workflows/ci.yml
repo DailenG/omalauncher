@@ -26,4 +26,4 @@ jobs:
 
       # Unit tests only: a full build needs proot, built by scripts/fetch-proot.sh.
       - name: Test
-        run: ./gradlew :owl:test :app:testDebugUnitTest :owl:owlJar
+        run: ./gradlew :owl:test :ttfx-android:testDebugUnitTest :app:testDebugUnitTest :owl:owlJar

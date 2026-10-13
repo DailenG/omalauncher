@@ -37,6 +37,7 @@ import dev.omalauncher.linux.matches
 import dev.omalauncher.linux.resolveLinuxIcon
 import dev.omalauncher.linux.run
 import dev.omalauncher.linux.shellQuote
+import dev.omalauncher.screensaver.ScreensaverText
 import dev.omalauncher.theme.Style
 import dev.omalauncher.theme.StyleStore
 import dev.omalauncher.theme.ThemeStore
@@ -98,7 +99,12 @@ class Runtime(
     val gpu = Gpu(context, proot)
 
     /** The launcher's own provided files (default widgets, their docs); see [Provisioner]. */
-    private val launcherFiles = Provisioner(proot.filesDir, LauncherData.LAUNCHER_MANIFEST, listOf(widgets::managed, style::managed))
+    private val launcherFiles =
+        Provisioner(
+            proot.filesDir,
+            LauncherData.LAUNCHER_MANIFEST,
+            listOf(widgets::managed, style::managed, { ScreensaverText.managed(context) }),
+        )
 
     /** Every launcher-provided file in the guest; synced only while Linux is installed. */
     private val provisioner: Provisioner =
