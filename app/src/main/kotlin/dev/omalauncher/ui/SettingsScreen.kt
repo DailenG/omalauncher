@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import dev.omalauncher.Runtime
 import dev.omalauncher.linux.JobState
 import dev.omalauncher.linux.LinuxState
+import dev.omalauncher.theme.Style
 
 /** The launcher's settings hub, opened from the gear next to the drawer's search. */
 @Composable
@@ -43,6 +44,14 @@ fun SettingsScreen(
     val context = LocalContext.current
     val linux by runtime.bootstrap.state.collectAsState()
     val installed = linux == LinuxState.Installed
+    val idleSeconds = runtime.style.style[Style.SCREENSAVER_IDLE]
+    val idleDuration = if (idleSeconds % 1.0 == 0.0) idleSeconds.toInt().toString() else idleSeconds.toString()
+    val screensaverSubtitle =
+        if (idleSeconds == 0.0) {
+            "off on home · tap for android's screen saver (pick Omarchy)"
+        } else {
+            "on home after $idleDuration s idle · tap for android's screen saver (pick Omarchy)"
+        }
     OverlayPanel("settings", onDismiss, contentWidth = ReadingWidth) {
         val linuxStatus =
             when (val l = linux) {
@@ -56,6 +65,11 @@ fun SettingsScreen(
             listOf(
                 Triple("style", runtime.themes.current?.title ?: "theme, background, home screen", onStyle),
                 Triple("gestures", "swipe up: ${runtime.gestures.swipeUp.label}", onGestures),
+                Triple("screensaver", screensaverSubtitle) {
+                    runCatching {
+                        context.startActivity(Intent(Settings.ACTION_DREAM_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    }
+                },
                 Triple("linux", linuxStatus, onLinux),
                 if (installed) {
                     Triple("coding agents", runtime.agents.default?.let { "default: ${it.name}" } ?: "install Claude Code, OpenCode, …", onAgents)

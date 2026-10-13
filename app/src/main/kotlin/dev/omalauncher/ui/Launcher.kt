@@ -1,5 +1,6 @@
 package dev.omalauncher.ui
 
+import android.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -47,9 +48,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.viewinterop.AndroidView
 import dev.omalauncher.Runtime
 import dev.omalauncher.theme.Style
 import dev.omalauncher.theme.StyleStore
+import dev.omalauncher.ttfx.TtfxAnimation
+import dev.omalauncher.ttfx.TtfxScreensaverView
 import dev.omalauncher.widgets.checkSecretsCommand
 import dev.omalauncher.widgets.publishWidgetCommand
 import dev.omalauncher.widgets.reviewSharedWidgetCommand
@@ -71,6 +75,14 @@ fun LauncherRoot(
             .then(if (showOwnBackground) Modifier.background(Palette.background) else Modifier),
     ) {
         if (ready) DesktopScreen(runtime, state) else SetupScreen(runtime)
+        if (state.screensaver) {
+            AndroidView(
+                factory = { context ->
+                    TtfxScreensaverView(context, TtfxAnimation.omarchyLogo(context)).apply { setBackgroundColor(Color.BLACK) }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
