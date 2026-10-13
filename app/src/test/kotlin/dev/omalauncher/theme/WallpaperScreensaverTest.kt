@@ -44,6 +44,38 @@ class WallpaperScreensaverTest {
         assertFalse(WallpaperScreensaver.plays(WallpaperScreensaver.Trigger.CREATED, null, true))
     }
 
+    @Test fun reloadsWithoutChangesAsRedraw() {
+        assertEquals(WallpaperScreensaver.Reload.REDRAW, WallpaperScreensaver.reload(true, true, "logo", "logo", 0.5, 0.5, 1.0, 1.0))
+    }
+
+    @Test fun enablingScreensaverReplays() {
+        assertEquals(WallpaperScreensaver.Reload.REPLAY, WallpaperScreensaver.reload(false, true, "logo", "logo", 0.5, 0.5, 1.0, 1.0))
+    }
+
+    @Test fun changingTextReplays() {
+        assertEquals(WallpaperScreensaver.Reload.REPLAY, WallpaperScreensaver.reload(true, true, "old", "new", 0.5, 0.5, 1.0, 1.0))
+    }
+
+    @Test fun changingPositionRelayouts() {
+        assertEquals(WallpaperScreensaver.Reload.RELAYOUT, WallpaperScreensaver.reload(true, true, "logo", "logo", 0.5, 0.6, 1.0, 1.0))
+    }
+
+    @Test fun changingSizeRelayouts() {
+        assertEquals(WallpaperScreensaver.Reload.RELAYOUT, WallpaperScreensaver.reload(true, true, "logo", "logo", 0.5, 0.5, 1.0, 0.9))
+    }
+
+    @Test fun disablingScreensaverTurnsItOff() {
+        assertEquals(WallpaperScreensaver.Reload.OFF, WallpaperScreensaver.reload(true, false, "logo", "logo", 0.5, 0.5, 1.0, 1.0))
+    }
+
+    @Test fun disabledScreensaverStaysOffDespiteOtherChanges() {
+        assertEquals(WallpaperScreensaver.Reload.OFF, WallpaperScreensaver.reload(false, false, "old", "new", 0.5, 0.6, 1.0, 0.9))
+    }
+
+    @Test fun enablingWithPositionChangeReplays() {
+        assertEquals(WallpaperScreensaver.Reload.REPLAY, WallpaperScreensaver.reload(false, true, "logo", "logo", 0.5, 0.6, 1.0, 1.0))
+    }
+
     @Test fun fadeClampsOverSixHundredMilliseconds() {
         assertEquals(0f, WallpaperScreensaver.fade(0), 0f)
         assertEquals(0.5f, WallpaperScreensaver.fade(300), 0f)

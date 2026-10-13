@@ -38,6 +38,25 @@ internal object WallpaperScreensaver {
         }
     }
 
+    enum class Reload { OFF, REPLAY, RELAYOUT, REDRAW }
+
+    /** What changed on reload: disable, replay for enable or new text, relayout, or redraw without interrupting an effect. */
+    fun reload(
+        wasEnabled: Boolean,
+        enabled: Boolean,
+        oldText: String,
+        text: String,
+        oldPosition: Double,
+        position: Double,
+        oldSize: Double,
+        size: Double,
+    ): Reload {
+        if (!enabled) return Reload.OFF
+        if (!wasEnabled || oldText != text) return Reload.REPLAY
+        if (oldPosition != position || oldSize != size) return Reload.RELAYOUT
+        return Reload.REDRAW
+    }
+
     fun fade(elapsedMs: Long): Float = (elapsedMs.coerceAtLeast(0L) / FADE_MS.toFloat()).coerceIn(0f, 1f)
 
     fun staticGrid(lines: List<String>, cols: Int, rows: Int): IntArray {

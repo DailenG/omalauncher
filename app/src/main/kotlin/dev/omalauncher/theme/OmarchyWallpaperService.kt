@@ -178,6 +178,8 @@ class OmarchyWallpaperService : WallpaperService() {
             if (decoder.isShutdown) return
             val wasEnabled = screenSaverEnabled()
             val oldText = screensaverText
+            val oldPosition = style[Style.WALLPAPER_SCREENSAVER_POSITION]
+            val oldSize = style[Style.WALLPAPER_SCREENSAVER_SIZE]
             decoder.execute {
                 val loadedStyle = StyleStore.read(this@OmarchyWallpaperService)
                 val loadedText = ScreensaverText.load(this@OmarchyWallpaperService)
@@ -186,17 +188,34 @@ class OmarchyWallpaperService : WallpaperService() {
                 main.post {
                     style = loadedStyle
                     screensaverText = loadedText
-                    if (!screenSaverEnabled()) {
-                        pendingTrigger = false
-                        stopAnimation()
-                        layout = null
-                    } else if (!wasEnabled || oldText != loadedText) {
-                        pendingTrigger = true
-                        stopAnimation()
-                        layout = null
-                    } else if (wasEnabled) {
-                        stopAnimation()
-                        layout = null
+                    val enabled = screenSaverEnabled()
+                    when (
+                        WallpaperScreensaver.reload(
+                            wasEnabled,
+                            enabled,
+                            oldText,
+                            loadedText,
+                            oldPosition,
+                            style[Style.WALLPAPER_SCREENSAVER_POSITION],
+                            oldSize,
+                            style[Style.WALLPAPER_SCREENSAVER_SIZE],
+                        )
+                    ) {
+                        WallpaperScreensaver.Reload.OFF -> {
+                            pendingTrigger = false
+                            stopAnimation()
+                            layout = null
+                        }
+                        WallpaperScreensaver.Reload.REPLAY -> {
+                            pendingTrigger = true
+                            stopAnimation()
+                            layout = null
+                        }
+                        WallpaperScreensaver.Reload.RELAYOUT -> {
+                            stopAnimation()
+                            layout = null
+                        }
+                        WallpaperScreensaver.Reload.REDRAW -> Unit
                     }
                     val colorsChanged = themeColors != colors
                     colors = themeColors
@@ -205,7 +224,7 @@ class OmarchyWallpaperService : WallpaperService() {
                         bitmap?.recycle()
                         bitmap = decoded
                     }
-                    if (screenSaverEnabled() && pendingTrigger && isVisible) startEffect() else draw()
+                    if (enabled && pendingTrigger && isVisible) startEffect() else if (animation == null) draw()
                     if (colorsChanged) notifyColorsChanged()
                 }
             }
@@ -214,20 +233,27 @@ class OmarchyWallpaperService : WallpaperService() {
         private fun screenSaverEnabled(): Boolean = style[Style.WALLPAPER_SCREENSAVER]
 
         private fun trigger(trigger: WallpaperScreensaver.Trigger) {
-            style = StyleStore.read(this@OmarchyWallpaperService)
-            screensaverText = ScreensaverText.load(this@OmarchyWallpaperService)
-            if (!screenSaverEnabled()) return
-            val flags = if (Build.VERSION.SDK_INT >= 34) getWallpaperFlags() else null
-            val powerSave = getSystemService(PowerManager::class.java)?.isPowerSaveMode == true
-            if (!WallpaperScreensaver.plays(trigger, flags, powerSave)) {
-                pendingTrigger = false
-                stopAnimation()
-                layout = null
-                draw()
-                return
+            if (decoder.isShutdown) return
+            decoder.execute {
+                val loadedStyle = StyleStore.read(this@OmarchyWallpaperService)
+                val loadedText = ScreensaverText.load(this@OmarchyWallpaperService)
+                main.post {
+                    style = loadedStyle
+                    screensaverText = loadedText
+                    if (!screenSaverEnabled()) return@post
+                    val flags = if (Build.VERSION.SDK_INT >= 34) getWallpaperFlags() else null
+                    val powerSave = getSystemService(PowerManager::class.java)?.isPowerSaveMode == true
+                    if (!WallpaperScreensaver.plays(trigger, flags, powerSave)) {
+                        pendingTrigger = false
+                        stopAnimation()
+                        layout = null
+                        draw()
+                        return@post
+                    }
+                    pendingTrigger = true
+                    if (isVisible) startEffect()
+                }
             }
-            pendingTrigger = true
-            if (isVisible) startEffect()
         }
 
         private fun layoutFor(width: Int, height: Int): ScreensaverLayout {
