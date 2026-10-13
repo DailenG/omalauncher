@@ -15,6 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "dev.omalauncher"
+        manifestPlaceholders["appLabel"] = "Omalauncher"
         minSdk = 29
         targetSdk = 37
         versionCode = 12
@@ -51,6 +52,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appLabel"] = "Omalauncher debug"
+        }
         release {
             // Shrinks the APK and drops what the app doesn't use, like the owl module's unused parts.
             isMinifyEnabled = true

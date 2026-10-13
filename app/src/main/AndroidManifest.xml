@@ -30,7 +30,7 @@
         android:name=".App"
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Omalauncher"
+        android:label="${appLabel}"
         android:theme="@style/Theme.Omalauncher"
         android:usesCleartextTraffic="true">
 
@@ -163,6 +163,13 @@
             android:label="Pi"
             android:targetActivity=".LinuxWindowActivity" />
 
+        <activity-alias
+            android:name=".OmpWindow"
+            android:exported="false"
+            android:icon="@drawable/agent_omp"
+            android:label="Oh My Pi"
+            android:targetActivity=".LinuxWindowActivity" />
+
         <activity
             android:name=".FilesActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode"
@@ -170,13 +177,13 @@
             android:label="Files"
             android:launchMode="singleTask"
             android:resizeableActivity="true"
-            android:taskAffinity="dev.omalauncher.files"
+            android:taskAffinity="${applicationId}.files"
             android:theme="@style/Theme.Omalauncher.Window"
             android:windowSoftInputMode="adjustResize" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="dev.omalauncher.files"
+            android:authorities="${applicationId}.files"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

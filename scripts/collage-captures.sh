@@ -14,7 +14,7 @@ STORE="${1:-$HERE/../../omarchy-widgets}"
 shift || true
 export ANDROID_SERIAL="${ANDROID_SERIAL:-emulator-5554}"
 OUT="$HERE/../store/collage/raw"
-PKG=dev.omalauncher
+PKG=dev.omalauncher.debug
 DATA=/data/data/$PKG
 BACKUP=/data/local/tmp/collage-backup.tar
 
@@ -45,7 +45,7 @@ adb shell "cd $DATA && tar cf $BACKUP files/widgets shared_prefs"
 restore() {
   adb shell am force-stop $PKG
   adb shell "cd $DATA && rm -rf files/widgets/*.owl && tar xf $BACKUP && chown -R $owner files/widgets shared_prefs && chcon -R $label files/widgets shared_prefs && rm $BACKUP"
-  adb shell am start -n $PKG/.MainActivity >/dev/null
+  adb shell am start -n $PKG/dev.omalauncher.MainActivity >/dev/null
   echo "restored the launcher's widgets and theme"
 }
 trap restore EXIT
@@ -73,7 +73,7 @@ for scene in "${SCENES[@]}"; do
   adb shell am force-stop $PKG
   # A bare home: no widgets, no layout, no pinned apps.
   adb shell "rm -f $DATA/files/widgets/*.owl $DATA/shared_prefs/widget_grid.xml $DATA/shared_prefs/shortcuts.xml"
-  adb shell am start -n $PKG/.MainActivity --es theme "$theme" >/dev/null
+  adb shell am start -n $PKG/dev.omalauncher.MainActivity --es theme "$theme" >/dev/null
   sleep 3
   # One at a time, each once the one before has its spot: the launcher places tiles as they
   # load, so adding them all at once mixes up the order.
@@ -84,9 +84,9 @@ for scene in "${SCENES[@]}"; do
   done
   # Theme, wallpaper and the widgets' first data.
   sleep "${WAIT:-12}"
-  # Home again in case another app came up meanwhile, and only keep a shot with the launcher in front throughout.
+  # The launcher again (not Home, which may be the release build) in case another app came up meanwhile, and only keep a shot with the launcher in front throughout.
   for try in $(seq 5); do
-    adb shell input keyevent KEYCODE_HOME
+    adb shell am start -n $PKG/dev.omalauncher.MainActivity >/dev/null
     sleep 2
     front || continue
     adb exec-out screencap -p >"$OUT/$theme.png"
