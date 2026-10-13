@@ -11,3 +11,7 @@ android {
         ndk { abiFilters += "arm64-v8a" }
     }
 }
+
+dependencies {
+    testImplementation(libs.junit)
+}
