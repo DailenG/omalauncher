@@ -55,7 +55,7 @@ fun agentInvocation(
     return when {
         agentBin == "opencode" -> "$agentBin --prompt $quoted"
         agentBin == "claude" && readOnly -> "$agentBin --permission-mode plan $quoted"
-        agentBin == "omp" && readOnly -> "$agentBin --tools read,grep,glob,find --approval-mode always-ask $quoted"
+        agentBin == "omp" && readOnly -> "$agentBin --tools read,grep,glob --approval-mode always-ask $quoted"
         else -> "$agentBin $quoted"
     }
 }
