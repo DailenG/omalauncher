@@ -18,17 +18,24 @@ internal object WallpaperScreensaver {
         format: Int,
     ): Boolean = old != Surface(width, height, format)
 
-    fun band(heightPx: Int, marginPx: Int, cellHeight: Float, textRows: Int, position: Double): Band {
+    fun band(
+        heightPx: Int,
+        topPx: Int,
+        bottomPx: Int,
+        cellHeight: Float,
+        textRows: Int,
+        position: Double,
+    ): Band {
         val logoHeight = textRows * cellHeight
-        val inner = heightPx - 2f * marginPx
-        if (logoHeight > inner) return Band(textRows, heightPx / 2f)
+        val inner = heightPx.toFloat() - topPx - bottomPx
+        if (logoHeight > inner) return Band(textRows, topPx + inner / 2f)
         val free = (inner - logoHeight).coerceAtLeast(0f)
-        val centerY = marginPx + logoHeight / 2f + position.coerceIn(0.0, 1.0).toFloat() * free
+        val centerY = topPx + logoHeight / 2f + position.coerceIn(0.0, 1.0).toFloat() * free
         val spare =
             floor(
                 min(
-                    centerY - marginPx - logoHeight / 2f,
-                    heightPx - marginPx - centerY - logoHeight / 2f,
+                    centerY - topPx - logoHeight / 2f,
+                    heightPx - bottomPx - centerY - logoHeight / 2f,
                 ) / cellHeight,
             ).toInt().coerceAtLeast(0)
         return Band(textRows + 2 * spare, centerY)

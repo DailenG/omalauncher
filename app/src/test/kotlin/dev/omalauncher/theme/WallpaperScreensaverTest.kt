@@ -21,9 +21,9 @@ class WallpaperScreensaverTest {
     }
 
     @Test fun bandMovesAcrossTheInnerRoom() {
-        val top = WallpaperScreensaver.band(1000, 100, 20f, 5, 0.0)
-        val middle = WallpaperScreensaver.band(1000, 100, 20f, 5, 0.5)
-        val bottom = WallpaperScreensaver.band(1000, 100, 20f, 5, 1.0)
+        val top = WallpaperScreensaver.band(1000, 100, 100, 20f, 5, 0.0)
+        val middle = WallpaperScreensaver.band(1000, 100, 100, 20f, 5, 0.5)
+        val bottom = WallpaperScreensaver.band(1000, 100, 100, 20f, 5, 1.0)
         assertTrue(top.centerY < middle.centerY)
         assertTrue(middle.centerY < bottom.centerY)
         assertEquals(0, top.rows - 5)
@@ -33,14 +33,25 @@ class WallpaperScreensaverTest {
     }
 
     @Test fun bandCentersAnOversizedLogo() {
-        val band = WallpaperScreensaver.band(100, 20, 30f, 5, 0.0)
+        val band = WallpaperScreensaver.band(100, 20, 20, 30f, 5, 0.0)
         assertEquals(50f, band.centerY, 0f)
         assertEquals(5, band.rows)
     }
 
+    @Test fun bandRespectsAsymmetricMargins() {
+        val top = WallpaperScreensaver.band(1000, 100, 200, 20f, 5, 0.0)
+        val middle = WallpaperScreensaver.band(1000, 100, 200, 20f, 5, 0.5)
+        val bottom = WallpaperScreensaver.band(1000, 100, 200, 20f, 5, 1.0)
+
+        assertEquals(150f, top.centerY, 0f)
+        assertEquals(450f, middle.centerY, 0f)
+        assertEquals(750f, bottom.centerY, 0f)
+        assertEquals((100f + 800f) / 2f, middle.centerY, 0f)
+    }
+
     @Test fun everyBandHasEvenNonnegativeSpareRows() {
         for (position in 0..10) {
-            val band = WallpaperScreensaver.band(721, 24, 17.3f, 7, position / 10.0)
+            val band = WallpaperScreensaver.band(721, 24, 24, 17.3f, 7, position / 10.0)
             assertTrue(band.rows >= 7)
             assertEquals(0, (band.rows - 7) % 2)
         }

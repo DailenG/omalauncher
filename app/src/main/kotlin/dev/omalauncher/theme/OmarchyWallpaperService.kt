@@ -19,6 +19,8 @@ import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.Choreographer
 import android.view.SurfaceHolder
+import android.view.WindowInsets
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import dev.omalauncher.LauncherData
 import dev.omalauncher.screensaver.ScreensaverText
@@ -343,10 +345,30 @@ class OmarchyWallpaperService : WallpaperService() {
             val textCols = lines.maxOf { it.length }.coerceAtLeast(1)
             val textRows = lines.size.coerceAtLeast(1)
             val margin = (24f * resources.displayMetrics.density).roundToInt()
-            val inner = (height - 2 * margin).coerceAtLeast(1)
+            val windowInsets =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    getSystemService(WindowManager::class.java)?.currentWindowMetrics?.windowInsets
+                } else {
+                    null
+                }
+            val topInset =
+                windowInsets?.getInsetsIgnoringVisibility(WindowInsets.Type.statusBars())?.top ?: 0
+            val bottomInset =
+                windowInsets?.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars())?.bottom ?: 0
+            val topMargin = margin + topInset
+            val bottomMargin = margin + bottomInset
+            val inner = (height - topMargin - bottomMargin).coerceAtLeast(1)
             val areaWidth = ((width - 2 * margin).coerceAtLeast(1) * style[Style.WALLPAPER_SCREENSAVER_SIZE]).roundToInt().coerceAtLeast(1)
             painter.fit(areaWidth, inner, maxOf(textCols, 40), textRows)
-            val band = WallpaperScreensaver.band(height, margin, painter.cellHeight, textRows, style[Style.WALLPAPER_SCREENSAVER_POSITION])
+            val band =
+                WallpaperScreensaver.band(
+                    height,
+                    topMargin,
+                    bottomMargin,
+                    painter.cellHeight,
+                    textRows,
+                    style[Style.WALLPAPER_SCREENSAVER_POSITION],
+                )
             val effectHeight = band.rows * painter.cellHeight
             val bounds = RectF(0f, band.centerY - effectHeight / 2f, width.toFloat(), band.centerY + effectHeight / 2f)
             return ScreensaverLayout(textCols, band.rows, bounds, WallpaperScreensaver.staticGrid(lines, textCols, band.rows))

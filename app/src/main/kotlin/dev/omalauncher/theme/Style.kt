@@ -178,7 +178,7 @@ class Style(
                 "wallpaper.screensaver-position",
                 0.5,
                 0.0..1.0,
-                "Where the wallpaper's logo sits: 0 top, 0.5 centered, 1 bottom, inside a 24 dp margin.",
+                "Where the wallpaper's logo sits: 0 top, 0.5 centered, 1 bottom, inside 24 dp edge margins and system-bar insets.",
             )
         val WALLPAPER_SCREENSAVER_SIZE =
             Setting.Number(
