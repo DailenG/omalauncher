@@ -57,6 +57,11 @@ and Super+W (close) in Linux windows.
 adb push ArchLinuxARM-aarch64-latest.tar.gz /sdcard/Android/data/dev.omalauncher/files/
 ```
 
+Debug builds use app ID `dev.omalauncher.debug`; use it for the `adb` package
+paths and as the component package in `am start`, while keeping the activity
+class name `dev.omalauncher.MainActivity` (for example,
+`dev.omalauncher.debug/dev.omalauncher.MainActivity`).
+
 Tests: `./gradlew :owl:test :app:testDebugUnitTest`. `./gradlew :owl:owlJar`
 builds `owl/build/cli/owl.jar`, the checker the widget store's CI runs.
 
